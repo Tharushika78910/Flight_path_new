@@ -58,13 +58,35 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
 
+# Winning Condition Check
+def check_winning_condition(player_id):
+    conn = connect_to_db()
+    if not conn:
+        return False
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT cargo_collected, end_location FROM player WHERE player_id = %s",
+            (player_id,)
+        )
+        result = cursor.fetchone()
+        if result and result[0] == 8 and result[1] == 'LIPE':
+            print("Congratulations! You have won the game!")
+            return True
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def get_airports_with_distances(player_id):
     conn = connect_to_db()
     if not conn:
         print("Database connection failed.")
         return
 
-    cursor = conn.cursor(dictionary=True)  # Use dictionary=True for easier access to column names
+    cursor = conn.cursor(dictionary=True)
     try:
         # Get the end_location and its coordinates for the player
         cursor.execute("""
@@ -146,7 +168,7 @@ def set_unfavorable_weather():
     for airport in cursor.fetchall():
         print(f" - {airport[0]} ({airport[1]}) - Fuel consumption increased by 60%")
 
-    # Close the connection
+
     cursor.close()
     conn.close()
 
@@ -333,6 +355,9 @@ def main():
     set_unfavorable_weather()
 
     while True:
+        if check_winning_condition(player_id):
+            break
+
         print("\nOptions:")
         print("1 - Fly to next airport")
         print("2 - Buy fuel")
